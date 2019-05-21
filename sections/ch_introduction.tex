@@ -1,0 +1,25 @@
+\chapter{Introduction}\label{ch:intro}
+This chapter briefly describes the scope of the project, the goals set and the development approach.
+
+\section{Project overview}
+Chapter 2 provides a detailed explanation of preliminaries that are necessary to understand the rest of the report. It includes some fundamental theory about the refinement relation, the DBM library internal encoding and an explanation of different kinds of zones. Next, in Chapter 3 we provide observations made during the testing of \ecdar 0.10 features that help us to broaden our understanding about the correct implementation of features, as well as inconsistencies of \ecdar 0.10 with the theory, which are essentially flaws in the implementation of the tool.
+
+Afterwards, in Chapter 4 we present a number of concepts that were introduced in an attempt to solve the discovered issues in features of \jecdar, as well as avoid all the inconsistencies of \ecdar 0.10 with the theory described in Chapter 3. 
+
+Chapter 5 presents implementation details of the newly developed features and modules. This includes an XML parser module, determinism check, consistency check, implementation check, making an automaton input-enabled, returning the refinement relation and more.
+
+Chapter 6 describes the tests that were performed to validate the correctness of previously existing and newly implemented features in \jecdar. We also describe the metrics used to verify the effectiveness of the test suite.
+
+Finally, in Chapter 7 we conclude the project and specify potential directions for future work related to \jecdar.
+
+
+\section{Project Scope}
+This project is the continuation of the pre-specialization semester and the improvement of \textsc{Jecdar} - a new verification engine. The initial aim of this project was to focus on implementing the possibility of having nested features, which was described in \textcite{Jecdar:2019} as an unimplemented feature. Afterwards, the preliminary goal was to carry on with the implementation of various new features such as Implementation, Specification, Quotient and more, to have a complete set of features similar to those in \ecdar 0.10. However, during the implementation of nested features and some thorough testing of models in \ecdar 0.10, we discovered a number of errors and inconsistencies between the theory and the existing \ecdar 0.10 tool. Moreover, some state-space exploration problems were detected in \jecdar that all together required further investigation.
+
+\section{Project goal}
+The above-mentioned discoveries forced us to drastically change the direction of the project. The primary goal becomes the investigation of various inconsistencies, solving and implementing correct solutions in \jecdar. As in the previous semester, the aim remains on correctness of the implementation and its consistency with the theory, rather than performance optimization.
+
+Nevertheless, a number of features are planned to be implemented, such as \textit{determinism check}, \textit{consistency check} and \textit{implementation check}.
+
+\section{Development strategy}
+Due to unexpectedly arisen high uncertainty in the project, we continue working agile. It is difficult to predict the outcome of our planned observations and the time needed to come up with relevant solutions. A large part of what we have been doing this semester is iteratively suggesting solutions to problems, working them out on the blackboard, manually testing and eventually implementing. We document our discoveries and observations and explain various solutions and concepts invented for solving certain problems in \jecdar.
