@@ -1,2 +1,72 @@
-\chapter{Appendix A name}\label{ch:appAlabel}
-Here is the first appendix
+\chapter[Refinement relation in JSON format]{Refinement relation\\ in JSON format}\label{ch:jsonRR}
+\begin{lstlisting}[language=json,firstnumber=1,tabsize=2]
+{
+"left": "id45",
+"zone": "[1, 1, 1, 2147483646, 1, 1, 2147483646, 1, 1]",
+"right": "id41",
+"initial sp id": "0",
+"transitions": [{
+		"source sp id": "0",
+		"channel": "ro",
+		"target sp id": "1",
+		"target sp": {
+			"left": "id44",
+			"zone": "[1, 1, 1, 13, 1, 1, 13, 1, 1]",
+			"state pair id": "1",
+			"right": "id40",
+			"transitions": [{
+					"source sp id": "1",
+					"channel": "go",
+					"target sp id": "2",
+					"target sp": {
+						"left": "id42",
+						"zone": "[1, 1, 1, 13, 1, 1, 13, 1, 1]",
+						"state pair id": "2",
+						"right": "id40",
+						"transitions": [{
+								"source sp id": "2",
+								"channel": "ri",
+								"target sp id": "4",
+								"target sp": {
+									"left": "id43",
+									"zone": "[1, 1, 1, 2147483646, 1, 1, 2147483646, 1, 1]",
+									"state pair id": "4",
+									"right": "id39"
+								}
+							}
+						]
+					}
+				}, {
+					"source sp id": "1",
+					"channel": "ri",
+					"target sp id": "3",
+					"target sp": {
+						"left": "id44",
+						"zone": "[1, 1, 1, 13, 1, 1, 13, 1, 1]",
+						"state pair id": "3",
+						"right": "id39",
+						"transitions": [{
+								"source sp id": "3",
+								"channel": "go",
+								"target sp id": "5",
+								"target sp": {
+									"left": "id42",
+									"zone": "[1, 1, 1, 13, 1, 1, 13, 1, 1]",
+									"state pair id": "5",
+									"right": "id39",
+									"transitions": [{
+											"source sp id": "5",
+											"channel": "ri",
+											"target sp id": "4"
+										}
+									]
+								}
+							}
+						]
+					}
+				}
+			]}}]}
+
+
+
+\end{lstlisting}

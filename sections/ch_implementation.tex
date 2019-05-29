@@ -1,5 +1,5 @@
 \chapter{Implementation}\label{ch:impl}
-This Chapter presents the set of features that were implemented, while providing an explanation regarding their necessity and specific details about how they were created.
+This Chapter presents the set of features that were implemented, while providing an explanation regarding their necessity and specific details about how they were created. This includes \textit{determinism, consistency} and \textit{implementation} checks, XML parser module, various fixes and even improvements of implementation, input-enabledness,returning refinement relation and more.
 
 
 \section{Nested features}
@@ -366,17 +366,104 @@ Figure \ref{fig:errLog} shows an example of the error messages that \jecdar retu
     \label{fig:errLog}
 \end{figure}
 
+\section{Passed list as HashMap}
+
+As already mentioned, during the development of \jecdar we specifically focus on correctness of verification, especially given all the discovered inconsistencies with the theory in \ecdar 0.10. However, we understand that performance is a critical factor due to the existence of the state-space explosion problem that addresses exponential growth of the state-space needed to be explored as the size of models increases. For that reason we outline performance optimization as one of the most relevant future improvements.
+
+Nonetheless, in the implementation of \jecdar we try to optimize performance at a micro-level. This mostly concerns the usage of data structures that provide better execution times. With the growing amount of test cases this problem becomes easier to address as the run time noticeably increases.
+
+One of such performance improvements was done to the \textit{passed} list of state pairs of the refinement relation. Previously, it was stored as a list of state pairs, which was a reasonable choice given the unpredictable final size of the list and having to constantly add elements to it. However, as with larger models the \textit{passed} list increases, it becomes more and more expensive to check if a newly discovered state pair already belongs to that list.
+
+To address this issue, we have implemented the \textit{passed} list as a hash map, with the key being the locations of both left and right side of the refinement and the values being the list of relevant state pairs. Note that this slightly decreases performance for cases with a small \textit{passed} list due to having to keep a key object, however it drastically increases performance for lists that are of medium and large size.
+
+This change helped us to decrease the overall execution time of the entire test suite by around 10-20\% for machines using Windows OS. On the other hand, for machines running MacOS, the performance has improved by up to 40\% in terms of time.
+
+\section{Non-canonical refinement relation} \label{sec:refRelation}
+After having finished implementing \textit{determinism, consistency} and \textit{implementation} checks, as well as global zones, described in Section \ref{sec:globalZone}, we have achieved verification of the refinement feature that is correct and consistent with the theory. Hence, we proceed to implementing the functionality to return the refinement relation, which shows how the state-space was explored. 
+
+\subsection{Storing the refinement relation}
+The first challenge in returning the refinement relation became to correctly store it while preserving the order in which state pairs have been explored as well as the information about all the edges that are taken to transition from one state pair to another. Even though the \textit{passed} list generated during the verification of the refinement feature contains all the explored state pairs, there is no information about the order in which these state pairs were explored or the edges taken. Therefore, for returning the refinement relation we chose to generate a graph along the verification of the refinement, where a node contains information about the corresponding state pair and transitions connecting these nodes keep track of all the edges of automata taken to reach a node.
+
+\begin{figure}
+\centering
+\begin {tikzpicture}[-latex ,auto ,node distance =4 cm and 5cm ,on grid ,
+semithick ,
+state/.style ={ circle ,top color =white , 
+draw, text=blue , minimum width =1 cm}]
+\node[state] (A) at (0, 0) {$SP0$};
+\node[state] (B) at (-1.5, -1.5) {$SP1$};
+\node[state] (C) at (1.5, -1.5) {$SP2$};
+\node[state] (D) at (-1.5, -3.5) {$SP3$};
+\node[state, dashed] (E) at (1.5, -3.5) {$SP4$};
+\node[state] (F) at (-1.5, -5.5) {$SP5$};
+\node[state, dashed] (G) at (1.5, -5.5) {$SP6$};
+\node at (0.0, -3.5) {$\supseteq$};
+
+\path (A) edge  (B);
+\path (A) edge (C);
+\path (B) edge (D);
+\path[dashed] (C) edge (E);
+\path (D) edge (F);
+\path[dashed] (E) edge (G);
+\path (C) edge (D);
+
+\end{tikzpicture}%
+\hspace{3cm}%
+\begin {tikzpicture}[-latex ,auto ,node distance =4 cm and 5cm ,on grid ,
+semithick ,
+state/.style ={ circle ,top color =white , 
+draw, text=blue , minimum width =1 cm}]
+\node[state] (A) at (0, 0) {$SP0$};
+\node[state] (B) at (-1.5, -1.5) {$SP2$};
+\node[state] (C) at (1.5, -1.5) {$SP1$};
+\node[state] (D) at (-1.5, -3.5) {$SP4$};
+\node[state] (E) at (1.5, -3.5) {$SP3$};
+\node[state] (F) at (-1.5, -5.5) {$SP6$};
+\node[state] (G) at (1.5, -5.5) {$SP5$};
+\node at (0.0, -3.5) {$\subseteq$};
+
+\path (A) edge  (B);
+\path (A) edge (C);
+\path (B) edge (D);
+\path (C) edge (E);
+\path (D) edge (F);
+\path (E) edge (G);
+
+\end{tikzpicture}
+\caption{Two valid non-canonical refinement relations for the same automata participating in the refinement} \label{fig:ref-relation}
+\end{figure}
+
+Due to the fact that the directed graph that contains the refinement relation is being generated together with the \textit{passed} list, the state space shown in the graph is not the complete one. As soon as a new state pair is discovered during the verification of refinement it is only stored and further explored if its zone is not a subset of any state pair that has previously been explored. This means that the size of the \textit{passed} list and, as a result, the size of the refinement relation graph for the same automata might differ depending on the exploration order. Figure \ref{fig:ref-relation} shows a small such example of two possible refinement relation graphs for the exact same case of automata participating in the refinement. Note that in both graphs state pair \textbf{SP4} is in relation with state pair \textbf{SP3}, such that \textbf{SP4} $\subseteq$ \textbf{SP3}. Therefore, what determines the size of the graph is the order in which \textbf{SP3} and \textbf{SP4} are explored.
+
+The graph on the left is the result of \textbf{SP3} being explored and stored in the passed list first. All the state pairs derived from \textbf{SP3} will eventually be stored as well. However, \textbf{SP4} is only discovered, but never stored as it is a subset of \textbf{SP3}. In such a case we create an edge from \textbf{SP2} to \textbf{SP3} which also contains information about it leading to a superset state pair (\textbf{SP3}) instead of the original state pair \textbf{SP4}.
+
+The graph on the right side showcases \textbf{SP4} being explored before \textbf{SP3}. Even though \textbf{SP4} $\subseteq$ \textbf{SP3}, it gets stored since \textbf{SP3} is not present in the \textit{passed} list yet. As a result, the graph on the right ends up storing two more nodes than the graph on the left side, solely because of the state space exploration order. Therefore, such a refinement relation is considered non-canonical.
+
+
+\subsection{Printing the refinement relation}
+Once the refinement relation is computed, we must find a way to print it out. There are two possibilities for printing the relation; either in a nested JSON format or as two separate lists, one containing state pairs and the other containing the transitions between them. Both of these ways are valid to be implemented as both of them are meant to be parsed and used in the GUI. We have chosen to print the refinement relation in a JSON format. An example of the JSON format refinement relation for the query \texttt{refinement:T6<=T5} of two automata from Figures \ref{fig:T6} and \ref{fig:T5} can be seen in Appendix \ref{ch:jsonRR}.
+
+Currently, the refinement relation that is returned contains information about locations, zones and edges. Ultimately, it is meant to be used in a GUI to highlight the edges of automata that were taken and the locations that were reached. However, to do so an additional logic would have to be added to the GUI to determine which edge is taken. To avoid that, one could assign IDs to edges in the GUI, which would then be stored in models. In its turn, \jecdar 0.2 would return IDs of edges which could be used by the GUI to quickly determine edges that require highlighting. Unfortunately, neither \ecdar 0.10 nor \ecdar 2.x assigns unique identifiers to edges in their current implementation. Consequently, it is unreasonable to provide this information without modifying the GUI, in order to allow it to create and store IDs on the edges. For the time being, transitions consist only of references to the source and target state pair, together with the corresponding channel. 
+
 \section{Jecdar commands}
-As mentioned in \textcite{Jecdar:2019}, we have several commands that can be used for communicating with \jecdar from the terminal. The list of commands can be seen in Table \ref{tbl:commands}. The "-rq folderPath query query..." command, which runs one or more queries, given the path of the model, has been modified with the addition of an extra flag to indicate whether the model is in JSON or in XML format. The reason for doing is so that the controller can decide which parser it should use. In order to run such a command, "-rq" must be typed, followed by either "-json" or "-xml", followed by the actual queries.
+As mentioned in \textcite{Jecdar:2019}, we have several commands that can be used for communicating with \jecdar from the terminal. The list of commands can be seen in Table \ref{tbl:commands}. The "-rq folderPath query query..." command, which runs one or more queries, given the path of the model, has been modified with the addition of an extra flag to indicate whether the model is in JSON or in XML format. The reason for doing this is so that the controller can decide which parser it should use. In order to run such a command, "-rq" must be typed, followed by either "-json" or "-xml", followed by the actual queries.
 
-An important notice one shall take, that \jecdar is now capable of recognising such keywords as determinism, consistency and implementation. One may simply invoke the "-rq" command and in the query specify that they want to get determinism check results. An example of such query could be "determinism:Machine", running this query will show if the automaton is deterministic.
+Moreover, \jecdar is now capable of recognizing such keywords as determinism, consistency and implementation, which correspond to the newly implemented features. These keywords are parts of the query and can be invoked as follows: 
 
-In \ecdar 0.10 and \ecdar 2.x the determinism check as a stand alone check does not exists, however it is included in the consistency as well implementation checks.
-%In addition to the previously mentioned commands, there were introduced two new commands in order to be able to return the Refinement relation as well as Refinement trace if the check return false. Table \ref{tbl:newCommands} provides with the list of new commands added to \jecdar. It is important that one would keep in mind to provide with the corresponding flag, which indicates whether it is JSON or XML format. The "-rqrr" command returns the refinement relation in a tree format as well as the result if it fails or not.
+\begin{itemize}
+    \item \textbf{determinism:} \texttt{-rq -xml path determinism:Automaton}. \\
+    In \ecdar 0.10 and \ecdar 2.x the determinism check as a stand alone check does not exist, however it is included in the consistency and implementation checks. 
+    \item \textbf{consistency:} \texttt{-rq -xml path consistency:Automaton}. \\
+    The consistency check first performs a determinism check and then verifies the independent progress property. Note that this command will only perform the least fixpoint consistency check. The full consistency check is only used as part of the implementation check and cannot be explicitly used as a stand alone command.
+    \item \textbf{implementation:} \texttt{-rq -xml path implementation:Automaton}. \\
+    The implementation check first performs a determinism check, then the full consistency check and lastly it checks if the output urgency property holds for the entire automaton.
+\end{itemize}
+
+In addition to the previously mentioned commands, we introduced one more new command in order to be able to return the refinement relation. Table \ref{tbl:commands} provides the description of the command, as well as an example of how to run the command. The flat indicating whether the model is in JSON or XML format must be provided. The "-rqrrr" command returns the refinement relation in a tree format as well as the result of the check. Just like the "-rq" command, "-rqrrr" is capable of dealing with multiple queries at the same time and returning the relation.
 
 \begin{center}
 \begin{table}
-    \begin{tabular}{ | l | p{6cm} |}
+    \begin{tabular}{ | *{4}{>{\raggedright\arraybackslash}m{6.5cm} |} }
     \hline
     Commands & Description of commands\\ \hline \hline
 \textbf{-help} &This command provides a list of all \jecdar commands as well as their usage\\ 
@@ -385,33 +472,13 @@ In \ecdar 0.10 and \ecdar 2.x the determinism check as a stand alone check does 
 \hline
 \textbf{-vq query} &Given a query this command will verify if the query is syntactically correct.\\
 \hline
-
-\textbf{-rq -json/-xml folderPath query query...} &Given a folder location with indicator for the format of the files and one or more queries this command will firstly check if the queries are syntactically correct and then will run them.\\ 
-
+\textbf{-rq -json/-xml folderPath query query...} &Given a folder location with the flag for the format of the files and one or more queries this command will firstly check if the queries are syntactically correct and then will execute them.\\
+\hline
+\textbf{-rqrrr -json/-xml folderPath query query...} & Given a folder location with the flag for the format and one or more queries the command will execute the refinement check and return the refinement relation.\\
 \hline
     \end{tabular}
-    \caption{\jecdar commands \textcite{Jecdar:2019}}
+    \caption{\jecdar commands}
      \label{tbl:commands}
      \end{table}
 \end{center}
-
-
-
-
-\iffalse
-\begin{center}
-\begin{table}
-    \begin{tabular}{ | l | p{5.7cm} |}
-    \hline
-    Commands & Description of commands\\ \hline \hline
-\textbf{-rqrr -json/-xml folderPath query query...} &This command works very alike to -rq, except it returns the refinement relation. Given a folder location with indicator for the format and one or more queries this command will execute the check and return the refinement relation.\\ 
-\hline
-\textbf{-rqrt -json/-xml folderPath query query...} &This command works almost the same as -rqrr, however instead of returning refinement relation, it will return trace to where the refinement check failed.\\ 
-\hline
-    \end{tabular}
-    \caption{New \jecdar commands}
-     \label{tbl:newCommands}
-     \end{table}
-\end{center}
-\fi
 

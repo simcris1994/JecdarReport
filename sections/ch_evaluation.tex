@@ -10,14 +10,10 @@ The result of this process is not an engine that behaves exactly like \ecdar, me
 This report documented our initial goal for the project, observations regarding scenarios that display inconsistencies between \ecdar and the theory of timed input/output automata, concepts that we used for the purpose of correctly implementing certain features (both successful and unsuccessful), implementation details and a description of our testing approach.
 
 \section{Future Work}\label{sec:future}
-In this chapter we introduce some of prominent ideas for future work that can be conducted on \jecdar engine. Note that this chapter does not include the points from the future work described in our previous semester, which can be found in \textcite{Jecdar:2019}.
+In this chapter we introduce some prominent ideas for future work that can be conducted on the \jecdar engine. Note that this chapter does not include the points from the future work described in our previous semester, which can be found in \textcite{Jecdar:2019}.
 
 \subsection{Greatest fixpoint consistency}
 Currently, \jecdar includes the least fixpoint consistency check as well as the full consistency check used in the implementation check. An interesting subject for future work can however be the computation of the greatest fixpoint consistency, described in Section \ref{sec:minConsistency}.
-
-\subsection{Returning refinement relation}
-\todo{recheck}
-Even though this time the main focus was on refinement, there still exists one more possibility regarding it. Right now \jecdar is capable of returning the list of state pairs which participate in the refinement relation, however it is not being visually shown, so this gives us the future possibility of visually displaying the refinement relation.
 
 \subsection{Support user-defined variables}
 \ecdar 0.10 supports record variables, which are specified by the keyword $struct$, which follows the $C$ notation. An example of a record $k$ can be seen in Listing \ref{lst:struct}. Thus, user-defined variables can be a good candidate for new features in \jecdar.
@@ -29,12 +25,23 @@ struct{
 \end{lstlisting}
 
 \subsection{TCTL formulas}
-Since \ecdar 0.10 is built on top of \uppaal it includes TCTL formulas, which could be a subject for improvement in \jecdar. 
+Since \ecdar 0.10 is built on top of \uppaal it includes TCTL formulas, which could be a subject for improvement in \jecdar.
+
+\subsection{Returning trace}
+A relevant addition to the refinement check is being able to return the trace that leads to an error state in cases where the refinement does not hold. This feature would help the user debug incorrect models by pinpointing the sequence of transitions and the time constraints that cause the system to reach an error state.
+
+A trace can also be regarded as a subset of the TCTL formulas, since internally it would behave as a reachability check.
+
+The computation of the trace would have to operate on the refinement relation that we represent as a graph, as described in \ref{sec:refRelation}. It is worth mentioning that an error state can be reached from more than one trace, as there could be several paths leading to that state.
+
+A potential challenge that we believe would be faced is back-propagating the information about the zone contained in the error state in order to adjust the zones of the states that lead to said state.
+
+Moreover, one may decide to implement the possibility to return all possible traces to the given state. This would require the generation of the complete refinement relation.
 
 \subsection{State-space reduction techniques}
 The field of model-checking is known for having the problem of exponential state-space growth during its exploration.
 This can be another improvement that \jecdar can benefit from - the introduction of state-space reduction techniques. Some of such techniques can greatly reduce the amount of time and memory required during state-space exploration.
 
-As already mentioned previously our focus is on correctness rather than performance. At the moment, \jecdar is making use of a rather primitive implementation of extrapolation abstraction. Hence, a very promising potential performance improvement could include implementation of more advanced extrapolation abstraction techniques, such as location-based bounds for extrapolation or lower and upper bound dependent extrapolation. For some models with very big values of the time-progress conditions (guards and invariants) this could greatly reduce the size of the state-space that has to be explored.
+As already mentioned previously our focus is on correctness rather than performance. At the moment, \jecdar is making use of a rather primitive implementation of extrapolation abstraction. Hence, a very promising potential performance improvement could include the implementation of more advanced extrapolation abstraction techniques, such as location-based bounds for extrapolation or lower and upper bound dependent extrapolation. For some models with very big values of the time-progress conditions (guards and invariants) this could greatly reduce the size of the state-space that has to be explored.
 
-Another case of abstraction could be the symmetry reduction. It is based on the \textit{state swaps} that are used to reduce the size of the state-space that has to be explored, consequently reducing time and memory needed for verification. According to \textcite{SymmetryReduction}, to achieve that a suitable bisimulation equivalence has to be derived from the system description, introducing the necessity for the engine to support such declarations. Afterwards, the representative function is constructed and used to convert a state into a corresponding equivalence class. Then when doing a reachability analysis it suffices to explore and store only one representative of equivalence class.
+Another case of abstraction could be symmetry reduction. It is based on the \textit{state swaps} that are used to reduce the size of the state-space that has to be explored, consequently reducing the time and memory needed for verification. According to \textcite{SymmetryReduction}, to achieve that a suitable bisimulation equivalence has to be derived from the system description, introducing the necessity for the engine to support such declarations. Afterwards, the representative function is constructed and used to convert a state into a corresponding equivalence class. Then when doing a reachability analysis it suffices to explore and store only one representative of the equivalence class.
